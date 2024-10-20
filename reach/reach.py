@@ -628,7 +628,7 @@ class Reach:
                 word_index = np.flip(np.argsort(sims_for_word))
                 yield [(self.indices[indices[idx]], sims_for_word[idx]) for idx in word_index]
 
-    def indices_threshold(
+    def nearest_neighbor_indices(
         self,
         vectors: npt.NDArray,
         threshold: float = 0.5,
@@ -639,34 +639,24 @@ class Reach:
         Retrieve the unsorted indices of the nearest neighbors for the given vectors above a threshold.
 
         This method is useful if you want to find the indices of the most similar items above a certain threshold
-        but don't need them to be sorted, which is a time consuming operation.
+        but don't need them to be sorted, or care about linking indices to names, which are time consuming operations.
+        If you need the names of the (sorted) items, use the nearest_neighbor_threshold function.
 
         :param vectors: The vectors to find the most similar vectors to.
         :param threshold: The threshold to use.
         :param batch_size: The batch size to use. 100 is a good default option. Increasing the batch size may increase
             the speed.
         :param show_progressbar: Whether to show a progressbar.
-
-        :return: For each item in the input, the indices of the nearest neighbors are returned as an array.
+        :yield np.ndarray: For each item in the input, the indices of the nearest neighbors are returned as an array.
         """
         vectors = np.array(vectors)
         if np.ndim(vectors) == 1:
             vectors = vectors[None, :]
 
-        return self._indices_threshold_batch(vectors, batch_size, threshold, show_progressbar)
-
-    def _indices_threshold_batch(
-        self,
-        vectors: np.ndarray,
-        batch_size: int,
-        threshold: float,
-        show_progressbar: bool,
-    ) -> Iterator[np.ndarray]:
-        """Batched cosine similarity. Returns the indices of vectors above the threshold."""
         for i in tqdm(range(0, len(vectors), batch_size), disable=not show_progressbar):
             batch = vectors[i : i + batch_size]
             similarities = self._sim(batch, self.norm_vectors)
-            for _, sims in enumerate(similarities):
+            for sims in similarities:
                 # Yield indices of neighbors with similarity above the threshold
                 yield np.flatnonzero(sims > threshold)
 

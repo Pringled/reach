@@ -195,15 +195,15 @@ class TestSimilarity(unittest.TestCase):
 
         self.assertEqual(result, result2)
 
-    def test_indices_threshold(self) -> None:
-        """Test the indices_threshold function."""
+    def test_nearest_neighbor_indices(self) -> None:
+        """Test the nearest_neighbor_indices function."""
         words, vectors = self.data()
         instance = Reach(vectors, words)
 
         # Set a high threshold to test that no indices are returned
         threshold = 0.99
         for word, vector in zip(words, vectors):
-            indices = list(instance.indices_threshold(np.array([vector]), threshold=threshold))[0]
+            indices = list(instance.nearest_neighbor_indices(np.array([vector]), threshold=threshold))[0]
             # Exclude self-similarity
             indices = indices[indices != instance.items[word]]
             self.assertEqual(indices.size, 0)
@@ -211,13 +211,15 @@ class TestSimilarity(unittest.TestCase):
         # Set a low threshold to ensure some indices are returned
         threshold = 0.0
         for word, vector in zip(words, vectors):
-            indices = list(instance.indices_threshold(np.array([vector]), threshold=threshold))[0]
+            indices = list(instance.nearest_neighbor_indices(np.array([vector]), threshold=threshold))[0]
 
-            # Get the actual sorted indices
+            # Get the actual indices
             similarities = instance.norm_vectors @ vector
             expected_indices = np.flatnonzero(similarities > threshold)
-            indices_sorted = np.sort(indices)
-            expected_indices_sorted = np.sort(expected_indices)
 
-            # Assert that the filtered and sorted indices match
-            self.assertTrue(np.array_equal(indices_sorted, expected_indices_sorted))
+            # Convert both to sets for comparison
+            indices_set = set(indices)
+            expected_indices_set = set(expected_indices)
+
+            # Assert that the filtered indices match the expected indices
+            self.assertEqual(indices_set, expected_indices_set)
